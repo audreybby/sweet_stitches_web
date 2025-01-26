@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React from 'react';
 import { BrowserRouter as Router, Route, Routes } from 'react-router-dom';
 import "react-toastify/dist/ReactToastify.css";
 // import Navbar from './components/Navbar';
@@ -18,21 +18,11 @@ import Navbar2 from './components/Navbar2';
 // import { AuthProvider } from "./components/AuthContext";
 import Gallery from './pages/Gallery';
 import Event from './pages/Event';
+import { ThemeProvider } from './components/ThemeContext';
 
 function App() {
-  const [theme, setTheme] = useState('light');
-
-  useEffect(() => {
-    const storedTheme = localStorage.getItem('theme');
-    if (storedTheme) {
-      setTheme(storedTheme);
-    } else {
-      setTheme('light');
-      document.documentElement.classList.remove('dark');
-    }
-  }, []);
-
   return (
+    <ThemeProvider>
     <CartProvider>
     <Router>
       <Navbar2 />
@@ -53,6 +43,7 @@ function App() {
       </Routes>
     </Router>
     </CartProvider>
+    </ThemeProvider>
   );
 }
 
