@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { db } from "../firebase";
 import { collection, getDocs } from "firebase/firestore";
+import Footer from "../components/Footer";
 
 const Gallery = () => {
   const [reviews, setReviews] = useState([]);
@@ -119,6 +120,8 @@ const Gallery = () => {
           </div>
         </div>
       )}
+
+      <Footer/>
     </div>
   );
 };

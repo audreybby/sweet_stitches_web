@@ -44,7 +44,7 @@ const Register = () => {
             type='password'
             placeholder='password'
             value={password} onChange={(e) => setPassword(e.target.value)}
-            className="w-full p-3 mb-6 text-base border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#ffa095]"
+            className="w-full p-3 mb-6 text-base border border-gray-200 rounded-lg focus:ou only:tline-none focus:ring-2 focus:ring-[#ffa095]"
           />
           <button
             type="submit"

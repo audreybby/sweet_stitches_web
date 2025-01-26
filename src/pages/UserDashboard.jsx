@@ -4,6 +4,7 @@ import { getFirestore, doc, getDoc, setDoc } from "firebase/firestore";
 import { auth } from "../firebase";
 import { useNavigate } from "react-router-dom";
 import LogoutButton from "../components/LogoutButton";
+import Footer from "../components/Footer";
 
 const UserDashboard = () => {
   const [activeMenu, setActiveMenu] = useState("account");

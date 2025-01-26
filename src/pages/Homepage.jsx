@@ -2,6 +2,7 @@
 import React from "react";
 import bgImage from "../assets/bg.jpg"; // Pastikan path ke file benar
 import aboutImage from "../assets/about.jpg"; // Tambahkan jika menggunakan gambar lokal
+import Footer from "../components/Footer";
 
 const Homepage = () => {
   return (
@@ -76,6 +77,8 @@ const Homepage = () => {
           </div>
         </div>
       </section>
+
+      <Footer/>
     </div>
   );
 };

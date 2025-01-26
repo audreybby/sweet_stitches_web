@@ -17,7 +17,7 @@ const ShopCk = () => {
   const [showSuccess, setShowSuccess] = useState(false);
   const { addToCart } = useCart();
 
-  // Fetch products from Firestore based on category "crochet"
+  // Fetch products from Firestore based on category "cake"
   useEffect(() => {
     const fetchCakeProducts = async () => {
       try {
@@ -29,7 +29,7 @@ const ShopCk = () => {
         }));
         setProducts(cakeProducts);
       } catch (error) {
-        console.error("Error fetching crochet products:", error);
+        console.error("Error fetching cake products:", error);
       }
     };
 
@@ -89,7 +89,7 @@ const ShopCk = () => {
           className="text-6xl sm:text-8xl md:text-9xl lg:text-9xl xl:text-[10rem] text-white z-20 text-center px-4"
           style={{ fontFamily: "'Quintessential', cursive" }}
         >
-          <span className="block sm:inline">Crochet</span>
+          <span className="block sm:inline">Cake</span>
         </h2>
       </section>
 
@@ -103,16 +103,16 @@ const ShopCk = () => {
 
         <div className="container mx-auto px-4 mt-8">
           {/* Mobile Product Carousel */}
-          <div className="sm:hidden grid grid-cols-2 gap-4 overflow-y-auto pb-4 relative">
+          <div className="sm:hidden flex gap-4 overflow-x-auto pb-4">
             {products.map((product) => (
               <div
                 key={product.id}
-                className="w-50 h-60 bg-white object-cover hover:scale-100 transition-transform rounded-lg p-1 cursor-pointer"
+                className="w-72 h-96 bg-white rounded-lg p-4 flex-shrink-0"
                 onClick={() => openModal(product)}
               >
                 <img
                   src={product.image}
-                  alt={product.name}
+                  alt={`Product ${product.id}`}
                   className="w-full h-full object-cover rounded-md"
                 />
                 <h2>{product.name}</h2>
@@ -122,28 +122,28 @@ const ShopCk = () => {
           </div>
 
           {/* Desktop Product Carousel */}
-          <div className="hidden sm:flex gap-8 items-center justify-center relative">
+          <div className="hidden sm:flex gap-8 items-center justify-center">
             <button
               onClick={prevProducts}
-              className="hover:text-[#e85c5c] absolute left-[-60px] z-20"
+              className="hover:text-[#e85c5c] mr-4"
               disabled={startIndex === 0}
             >
               <img
                 src={leftArrow}
                 alt="Left Arrow"
-                className="w-16 h-16 cursor-pointer hover:opacity-80 transition-opacity opacity-50"
+                className="w-8 sm:w-12 h-8 sm:h-12 cursor-pointer hover:opacity-80 transition-opacity opacity-50"
               />
             </button>
 
             {displayedProducts.map((product) => (
               <div
                 key={product.id}
-                className="w-[350px] sm:w-[500px] h-[500px] bg-white rounded-lg p-4 cursor-pointer"
+                className="w-72 h-96 bg-white rounded-lg p-4"
                 onClick={() => openModal(product)}
               >
                 <img
                   src={product.image}
-                  alt={product.name}
+                  alt={`Product ${product.id}`}
                   className="w-full h-full object-cover rounded-md"
                 />
                 <h2>{product.name}</h2>
@@ -153,13 +153,13 @@ const ShopCk = () => {
 
             <button
               onClick={nextProducts}
-              className="hover:text-[#e85c5c] absolute right-[-60px] z-20"
+              className="hover:text-[#e85c5c] ml-4"
               disabled={startIndex >= products.length - 3}
             >
               <img
                 src={rightArrow}
                 alt="Right Arrow"
-                className="w-16 h-16 cursor-pointer hover:opacity-80 transition-opacity opacity-50"
+                className="w-8 sm:w-12 h-8 sm:h-12 cursor-pointer hover:opacity-80 transition-opacity opacity-50"
               />
             </button>
           </div>
@@ -169,23 +169,9 @@ const ShopCk = () => {
       {/* Cart Modal */}
       {isModalOpen && selectedProduct && (
         <div className="fixed bottom-0 left-0 w-full bg-white z-50 p-4 rounded-t-2xl">
-          <button onClick={() => setIsModalOpen(false)}
-                  className="absolute top-4 right-5">
-          <img
-                src={closeIcon}
-                alt="Close"
-                className="w-8 h-8 opacity-30 hover:opacity-100"
-              />
+          <button onClick={() => setIsModalOpen(false)}>
+            <img src={closeIcon} alt="Close" className="w-8 h-8" />
           </button>
-
-          <div className="w-32 sm:w-40 h-32 sm:h-40 object-cover rounded-md mr-4 mt-16">
-              <img
-                src={selectedProduct.image}
-                alt={`Product ${selectedProduct.id}`}
-                className="w-full h-full object-contain rounded-md"
-              />
-          </div>
-          
           <div>
             <h2 className="text-2xl font-bold">{selectedProduct.name}</h2>
             <p className="text-lg">Rp {selectedProduct.price}</p>

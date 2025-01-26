@@ -286,7 +286,9 @@ const Admin = () => {
             <div className="top mb-5">
                 <div className="bg-pink-50 py-5 border border-pink-100 rounded-lg">
                     <h1 className="text-center text-2xl font-bold text-pink-500">Admin Dashboard</h1>
+                    <div className="ml-[736px] pt-4">
                     <LogoutButton/>
+                    </div>
                     {/* <button
                         onClick={() => {
                             auth.signOut();
