@@ -23,26 +23,28 @@ import { ThemeProvider } from './components/ThemeContext';
 function App() {
   return (
     <ThemeProvider>
-    <CartProvider>
-    <Router>
-      <Navbar2 />
-      <Routes>
-        <Route path="/" element={<Homepage/>} />
-        <Route path="/register" element={<Register/>} />
-        <Route path="/signin" element={<Signin />} />
-        <Route path="/admin" element={<AdminDashboard/>} />
-        <Route path="/admin2" element={<Admin/>} />
-        <Route path="/user" element={<UserDashboard/>} />
-        <Route path="/profile" element={<ProfilePage />} />
-        <Route path="/updateprofile" element={<UpdateProfile />} />
-        <Route path="/shopck" element={<ShopCk />} />
-        <Route path="/shopcr" element={<ShopCr />} />
-        <Route path="/checkout" element={<Checkout />} />
-        <Route path="/gallery" element={<Gallery />} />
-        <Route path="/event" element={<Event />} />
-      </Routes>
-    </Router>
-    </CartProvider>
+      <CartProvider>
+        <Router>
+          <div className="min-h-screen bg-white text-black"> {/* Explicitly light background */}
+            <Navbar2 />
+            <Routes>
+              <Route path="/" element={<Homepage />} />
+              <Route path="/register" element={<Register />} />
+              <Route path="/signin" element={<Signin />} />
+              <Route path="/admin" element={<AdminDashboard />} />
+              <Route path="/admin2" element={<Admin />} />
+              <Route path="/user" element={<UserDashboard />} />
+              <Route path="/profile" element={<ProfilePage />} />
+              <Route path="/updateprofile" element={<UpdateProfile />} />
+              <Route path="/shopck" element={<ShopCk />} />
+              <Route path="/shopcr" element={<ShopCr />} />
+              <Route path="/checkout" element={<Checkout />} />
+              <Route path="/gallery" element={<Gallery />} />
+              <Route path="/event" element={<Event />} />
+            </Routes>
+          </div>
+        </Router>
+      </CartProvider>
     </ThemeProvider>
   );
 }
