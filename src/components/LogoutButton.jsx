@@ -1,23 +1,26 @@
 import React, { useState } from 'react';
 import { auth } from '../firebase';
+import { useCart } from "./CartContext";
 import { useNavigate } from 'react-router-dom';
 
 const LogoutButton = () => {
-  const [showModal, setShowModal] = useState(false); // To control the modal visibility
+  const [showModal, setShowModal] = useState(false);
   const navigate = useNavigate();
+  const { clearLocalCart } = useCart();
 
   const handleLogoutClick = () => {
-    setShowModal(true); // Show the confirmation modal when logout is clicked
+    setShowModal(true);
   };
 
-  const handleConfirmLogout = () => {
-    auth.signOut();
+  const handleConfirmLogout = async () => {
+    await auth.signOut();
     setShowModal(false);
+    clearLocalCart();
     navigate('/');
   };
 
   const handleCancelLogout = () => {
-    setShowModal(false); // Close the modal if the user cancels
+    setShowModal(false);
   };
 
   return (

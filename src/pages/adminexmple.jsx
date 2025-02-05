@@ -69,6 +69,7 @@ const Admin = () => {
     const [editingReview, setEditingReview] = useState(null);
     const [editedReview, setEditedReview] = useState({ description: "", imageFile: null });
     const [newReview, setNewReview] = useState({ description: "", imageFile: null });
+    const [orders, setOrders] = useState([]);
 
     useEffect(() => {
         const unsubscribe = onAuthStateChanged(auth, async (currentUser) => {
@@ -88,7 +89,7 @@ const Admin = () => {
         return () => unsubscribe();
     }, []);
 
-    //PRODUCT
+    // Fetch products
     const fetchProducts = async () => {
         try {
             const productsCollection = collection(db, "products");
@@ -107,7 +108,7 @@ const Admin = () => {
         fetchProducts();
     }, []);
 
-    //REVIEW
+    // Fetch reviews
     const fetchReviews = async () => {
         try {
             const reviewsCollection = collection(db, "reviews");
@@ -118,7 +119,7 @@ const Admin = () => {
             }));
             setReview(reviewsList);
         } catch (error) {
-            console.error("Error fetching products:", error);
+            console.error("Error fetching reviews:", error);
         }
     };
 
@@ -126,6 +127,33 @@ const Admin = () => {
         fetchReviews();
     }, []);
 
+    // Fetch orders
+    const fetchOrders = async () => {
+        try {
+          const ordersCollection = await getDocs(collection(db, "orders"));
+          setOrders(ordersCollection.docs.map((doc) => ({ id: doc.id, ...doc.data() })));
+        } catch (error) {
+          console.error("Error fetching orders:", error);
+        }
+      };
+    
+      useEffect(() => {
+        fetchOrders();
+      }, []);
+
+    // Update order status
+    const updateOrderStatus = async (orderId, newStatus) => {
+        try {
+          await updateDoc(doc(db, "orders", orderId), { status: newStatus });
+          setOrders((prevOrders) =>
+            prevOrders.map((order) => (order.id === orderId ? { ...order, status: newStatus } : order))
+          );
+        } catch (error) {
+          console.error("Error updating order status:", error);
+        }
+      };
+
+    // Add product
     const addProduct = async () => {
         if (newProduct.name.trim() && newProduct.price.trim() && newProduct.imageFile) {
             try {
@@ -154,11 +182,13 @@ const Admin = () => {
         }
     };
 
+    // Edit product
     const handleEdit = (product) => {
         setEditingProduct(product);
         setEditedProduct({ name: product.name, price: product.price, category: product.category, imageFile: null });
     };
 
+    // Update product
     const updateProduct = async () => {
         if (!editingProduct) return;
 
@@ -190,6 +220,7 @@ const Admin = () => {
         }
     };
 
+    // Delete product
     const deleteProduct = async (id) => {
         try {
             const productDoc = doc(db, "products", id);
@@ -200,12 +231,13 @@ const Admin = () => {
         }
     };
 
+    // Cancel edit product
     const cancelEdit = () => {
         setEditingProduct(null);
         setEditedProduct({ name: "", price: "", category: "", imageFile: null });
     };
 
-    //REVIEW
+    // Add review
     const addReview = async () => {
         if (newReview.description?.trim() && newReview.imageFile) {
             try {
@@ -232,11 +264,13 @@ const Admin = () => {
         }
     };
 
+    // Edit review
     const editReview = (review) => {
         setEditingReview(review);
         setEditedReview({ description: review.description, imageFile: null });
     };
 
+    // Update review
     const updateReview = async () => {
         if (!editingReview) return;
 
@@ -245,7 +279,7 @@ const Admin = () => {
                 description: editedReview.description,
             };
 
-            if (editedProduct.imageFile) {
+            if (editedReview.imageFile) {
                 const file = editedReview.imageFile;
                 const maxWidth = 800;
                 const maxHeight = 600;
@@ -266,6 +300,7 @@ const Admin = () => {
         }
     };
 
+    // Delete review
     const deleteReview = async (id) => {
         try {
             const reviewDoc = doc(db, "reviews", id);
@@ -276,6 +311,7 @@ const Admin = () => {
         }
     };
 
+    // Cancel edit review
     const cancelEditReview = () => {
         setEditingReview(null);
         setEditedReview({ description: "", imageFile: null });
@@ -287,19 +323,8 @@ const Admin = () => {
                 <div className="bg-pink-50 py-5 border border-pink-100 rounded-lg">
                     <h1 className="text-center text-2xl font-bold text-pink-500">Admin Dashboard</h1>
                     <div className="sm:ml-[300px] sm:pt-3 md:ml-[736px] md:pt-4 ml-[135px] pt-2">
-                    <LogoutButton/>
+                        <LogoutButton />
                     </div>
-                    {/* <button
-                        onClick={() => {
-                            auth.signOut();
-                            setUser(null);
-                            setRole(null);
-                            navigate('/');
-                        }}
-                        className="bg-red-500 px-4 py-2 rounded text-white"
-                    >
-                        Logout
-                    </button> */}
                 </div>
             </div>
             <div className="px-5">
@@ -317,6 +342,13 @@ const Admin = () => {
                                 <img src={buyer} alt="" className="text-pink-500 w-12 h-12 mb-3 inline-block" />
                                 <h2 className="font-medium text-2xl text-pink-400">{review.length}</h2>
                                 <p className="text-pink-500 font-bold">Reviews</p>
+                            </div>
+                        </Tab>
+                        <Tab className="p-4 sm:w-1/2 md:w-1/4 w-full cursor-pointer">
+                            <div className="border bg-pink-50 hover:bg-pink-100 border-pink-100 px-4 py-3 rounded-xl text-center">
+                                <img src={order} alt="" className="text-pink-500 w-12 h-12 mb-3 inline-block" />
+                                <h2 className="font-medium text-2xl text-pink-400">{orders.length}</h2>
+                                <p className="text-pink-500 font-bold">Orders</p>
                             </div>
                         </Tab>
                     </TabList>
@@ -407,69 +439,6 @@ const Admin = () => {
                         </div>
                     </TabPanel>
 
-                    {editingProduct && (
-                        <div className="modal bg-gray-800 bg-opacity-50 fixed inset-0 flex items-center justify-center">
-                            <div className="bg-white p-6 rounded-md w-full max-w-lg">
-                                <h2>Edit Product</h2>
-                                <label>
-                                    Name:
-                                    <input
-                                        type="text"
-                                        value={editedProduct.name}
-                                        onChange={(e) => setEditedProduct({ ...editedProduct, name: e.target.value })}
-                                        className="border p-2 rounded-md w-full"
-                                    />
-                                </label>
-                                <label>
-                                    Price:
-                                    <input
-                                        type="text"
-                                        value={editedProduct.price}
-                                        onChange={(e) => setEditedProduct({ ...editedProduct, price: e.target.value })}
-                                        className="border p-2 rounded-md w-full"
-                                    />
-                                </label>
-                                <label>
-                                    Category:
-                                    <select
-                                        value={editedProduct.category}
-                                        onChange={(e) => setEditedProduct({ ...editedProduct, category: e.target.value })}
-                                        className="border p-2 rounded-md w-full"
-                                    >
-                                        <option value="crochet">Crochet</option>
-                                        <option value="cake">Cake</option>
-                                    </select>
-                                </label>
-                                <label>
-                                    Image:
-                                    <input
-                                        type="file"
-                                        accept="image/*"
-                                        onChange={(e) =>
-                                            setEditedProduct({ ...editedProduct, imageFile: e.target.files[0] })
-                                        }
-                                        className="border p-2 rounded-md"
-                                    />
-                                </label>
-                                <div className="mt-4">
-                                    <button
-                                        onClick={updateProduct}
-                                        className="bg-blue-500 text-white p-2 rounded-md hover:bg-blue-600"
-                                    >
-                                        Update Product
-                                    </button>
-                                    <button
-                                        onClick={cancelEdit}
-                                        className="bg-gray-500 text-white p-2 rounded-md hover:bg-gray-600 ml-2"
-                                    >
-                                        Cancel
-                                    </button>
-                                </div>
-                            </div>
-                        </div>
-                    )}
-                    
-                    {/* REVIEWS */}
                     <TabPanel>
                         <div className="py-5">
                             <div className="flex flex-col sm:flex-row justify-between items-center mb-5 space-y-4 sm:space-y-0">
@@ -492,7 +461,7 @@ const Admin = () => {
                                         onClick={addReview}
                                         className="bg-pink-500 text-white p-2 rounded-md hover:bg-pink-600"
                                     >
-                                        Add Product
+                                        Add Review
                                     </button>
                                 </div>
                             </div>
@@ -536,8 +505,129 @@ const Admin = () => {
                             </div>
                         </div>
                     </TabPanel>
+
+                    <TabPanel>
+                                <div className="py-5">
+                                  <h1 className="text-xl text-pink-300 font-bold mb-5">Orders</h1>
+                                  <div className="overflow-x-auto">
+                                    <table className="table-auto w-full text-sm md:text-base">
+                                      <thead>
+                                        <tr className="bg-pink-100">
+                                          <th className="py-2 px-4">S.No.</th>
+                                          <th className="py-2 px-4">Order ID</th>
+                                          <th className="py-2 px-4">Items</th>
+                                          <th className="py-2 px-4">Total</th>
+                                          <th className="py-2 px-4">Status</th>
+                                          <th className="py-2 px-4">Actions</th>
+                                        </tr>
+                                      </thead>
+                                      <tbody>
+                                        {orders.map((order, index) => (
+                                          <tr key={order.id} className="border-t">
+                                            <td className="py-2 px-4">{index + 1}</td>
+                                            <td className="py-2 px-4">{order.id}</td>
+                                            <td className="py-2 px-4">
+                                              <ul>
+                                                {order.items.map((item, i) => (
+                                                  <li key={i}>
+                                                    {item.name} x {item.quantity} - Rp {item.price * item.quantity}
+                                                  </li>
+                                                ))}
+                                              </ul>
+                                            </td>
+                                            <td className="py-2 px-4">Rp {order.total}</td>
+                                            <td className="py-2 px-4">{order.status}</td>
+                                            <td className="py-2 px-4">
+                                              <button
+                                                onClick={() => updateOrderStatus(order.id, "Diproses")}
+                                                className="bg-blue-500 text-white p-2 rounded-md hover:bg-blue-600"
+                                              >
+                                                Process
+                                              </button>
+                                              <button
+                                                onClick={() => updateOrderStatus(order.id, "Dikirim")}
+                                                className="bg-green-500 text-white p-2 rounded-md hover:bg-green-600 ml-2"
+                                              >
+                                                Ship
+                                              </button>
+                                              <button
+                                                onClick={() => updateOrderStatus(order.id, "Selesai")}
+                                                className="bg-purple-500 text-white p-2 rounded-md hover:bg-purple-600 ml-2"
+                                              >
+                                                Complete
+                                              </button>
+                                            </td>
+                                          </tr>
+                                        ))}
+                                      </tbody>
+                                    </table>
+                                  </div>
+                                </div>
+                              </TabPanel>
                 </Tabs>
             </div>
+
+            {editingProduct && (
+                <div className="modal bg-gray-800 bg-opacity-50 fixed inset-0 flex items-center justify-center">
+                    <div className="bg-white p-6 rounded-md w-full max-w-lg">
+                        <h2>Edit Product</h2>
+                        <label>
+                            Name:
+                            <input
+                                type="text"
+                                value={editedProduct.name}
+                                onChange={(e) => setEditedProduct({ ...editedProduct, name: e.target.value })}
+                                className="border p-2 rounded-md w-full"
+                            />
+                        </label>
+                        <label>
+                            Price:
+                            <input
+                                type="text"
+                                value={editedProduct.price}
+                                onChange={(e) => setEditedProduct({ ...editedProduct, price: e.target.value })}
+                                className="border p-2 rounded-md w-full"
+                            />
+                        </label>
+                        <label>
+                            Category:
+                            <select
+                                value={editedProduct.category}
+                                onChange={(e) => setEditedProduct({ ...editedProduct, category: e.target.value })}
+                                className="border p-2 rounded-md w-full"
+                            >
+                                <option value="crochet">Crochet</option>
+                                <option value="cake">Cake</option>
+                            </select>
+                        </label>
+                        <label>
+                            Image:
+                            <input
+                                type="file"
+                                accept="image/*"
+                                onChange={(e) =>
+                                    setEditedProduct({ ...editedProduct, imageFile: e.target.files[0] })
+                                }
+                                className="border p-2 rounded-md"
+                            />
+                        </label>
+                        <div className="mt-4">
+                            <button
+                                onClick={updateProduct}
+                                className="bg-blue-500 text-white p-2 rounded-md hover:bg-blue-600"
+                            >
+                                Update Product
+                            </button>
+                            <button
+                                onClick={cancelEdit}
+                                className="bg-gray-500 text-white p-2 rounded-md hover:bg-gray-600 ml-2"
+                            >
+                                Cancel
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
 
             {editingReview && (
                 <div className="modal bg-gray-800 bg-opacity-50 fixed inset-0 flex items-center justify-center">

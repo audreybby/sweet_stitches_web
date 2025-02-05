@@ -1,111 +1,112 @@
-// eslint-disable-next-line no-unused-vars
-import React from "react";
-import { useCart } from "./CartContext"; 
+import React, { useState, useEffect } from "react";
+import { useCart } from "./CartContext";
+import { db } from "../firebase";
+import { collection, addDoc, serverTimestamp, doc, getDoc } from "firebase/firestore";
+import { auth } from "../firebase";
 
 const Checkout = () => {
-  const { cart, removeFromCart, updateQuantity } = useCart(); // Access cart data 
+  const { cart, removeFromCart, updateQuantity, clearCart } = useCart();
+  const [showPopup, setShowPopup] = useState(false);
+  const [formData, setFormData] = useState({
+    address: "",
+    paymentMethod: "",
+    shippingOption: ""
+  });
+
+  useEffect(() => {
+    const fetchUserAddress = async () => {
+      const user = auth.currentUser;
+      if (user) {
+        const userDoc = await getDoc(doc(db, "users", user.uid));
+        if (userDoc.exists()) {
+          setFormData(prevData => ({ ...prevData, address: userDoc.data().address || "" }));
+        }
+      }
+    };
+    fetchUserAddress();
+  }, []);
 
   const handleQuantityChange = (id, delta) => {
-    updateQuantity(id, Math.max(1, delta)); // Update quantity 
+    updateQuantity(id, Math.max(1, delta));
   };
 
   const handleRemoveItem = (id) => {
-    removeFromCart(id); 
+    removeFromCart(id);
   };
 
   const calculateTotal = () => {
     return cart.reduce((total, item) => total + item.price * item.quantity, 0);
   };
 
-  const handleCheckout = () => {
+  const handleCheckout = async () => {
     if (cart.length === 0) {
       alert("Your cart is empty.");
       return;
     }
+    setShowPopup(true);
+  };
 
-    // WhatsApp message
-    const message = cart
-      .map((item) => `*${item.name}* x${item.quantity} - Rp ${item.price * item.quantity}`)
-      .join("%0A"); 
+  const handleSubmitOrder = async () => {
+    if (!formData.address || !formData.paymentMethod || !formData.shippingOption) {
+      alert("Please fill in all details.");
+      return;
+    }
+    
+    try {
+      const orderData = {
+        items: cart.map((item) => ({
+          name: item.name,
+          price: item.price,
+          quantity: item.quantity,
+          image: item.image,
+        })),
+        total: calculateTotal(),
+        address: formData.address,
+        paymentMethod: formData.paymentMethod,
+        shippingOption: formData.shippingOption,
+        status: "Menunggu Konfirmasi",
+        createdAt: serverTimestamp(),
+      };
 
-    const total = calculateTotal();
-    const finalMessage = `Halo, Saya mau order product dari Sweet Stitches:%0A${message}%0A%0ATotal: Rp ${total}`;
-
-    const phoneNumber = "6287716272187"; 
-    const whatsappURL = `https://wa.me/${phoneNumber}?text=${finalMessage}`;
-
-    window.open(whatsappURL, "_blank");
+      await addDoc(collection(db, "orders"), orderData);
+      clearCart();
+      setShowPopup(false);
+      alert("Order berhasil dibuat! Admin akan segera menghubungi Anda.");
+    } catch (error) {
+      console.error("Error saving order:", error);
+      alert("Terjadi kesalahan saat menyimpan order.");
+    }
   };
 
   return (
     <div className="min-h-screen flex flex-col bg-white pt-16">
-      {/* Header */}
       <div className="text-center py-6 mb-4">
-        <h2
-          className="text-3xl sm:text-4xl md:text-5xl pt-2 font-bold text-[#c87878]"
-          style={{ fontFamily: "'Quintessential', cursive" }}
-        >
+        <h2 className="text-3xl sm:text-4xl md:text-5xl pt-2 font-bold text-[#c87878]" style={{ fontFamily: "'Quintessential', cursive" }}>
           Your Cart
         </h2>
       </div>
 
-      {/* Product List */}
       <div className="flex-grow overflow-auto">
         {cart.length > 0 ? (
           <div className="max-w-full mx-auto px-4 sm:px-8 lg:px-20">
             {cart.map((item) => (
-              <div
-                key={item.id}
-                className="flex flex-col sm:flex-row items-center py-4 border-b border-gray-200"
-              >
-                {/* Product Image and Details */}
+              <div key={item.id} className="flex flex-col sm:flex-row items-center py-4 border-b border-gray-200">
                 <div className="flex w-full sm:w-auto">
-                  {/* Product Image */}
                   <div className="flex-shrink-0">
-                    <img
-                      src={item.image}
-                      alt={item.name}
-                      className="w-32 h-32 sm:w-32 sm:h-32 md:w-40 md:h-40 object-cover rounded-md"
-                    />
+                    <img src={item.image} alt={item.name} className="w-32 h-32 sm:w-32 sm:h-32 md:w-40 md:h-40 object-cover rounded-md" />
                   </div>
-
-                  {/* Product Name, Price, and Quantity */}
                   <div className="ml-4 flex flex-col w-full">
-                    <h2 className="text-lg sm:text-xl font-semibold text-gray-800 mt-2">
-                      {item.name}
-                    </h2>
-                    {/* Original Price */}
-                    <div className="text-gray-700 font-semibold mt-2">
-                      Rp {item.price}
-                    </div>
-
-                    {/* Quantity Controls */}
+                    <h2 className="text-lg sm:text-xl font-semibold text-gray-800 mt-2">{item.name}</h2>
+                    <div className="text-gray-700 font-semibold mt-2">Rp {item.price}</div>
                     <div className="flex items-center mt-4">
-                      <button
-                        className="px-2 py-1 border rounded-l bg-[#ffeeee]"
-                        onClick={() => handleQuantityChange(item.id, item.quantity - 1)}
-                      >
-                        -
-                      </button>
+                      <button className="px-2 py-1 border rounded-l bg-[#ffeeee]" onClick={() => handleQuantityChange(item.id, item.quantity - 1)}>-</button>
                       <span className="px-4">{item.quantity}</span>
-                      <button
-                        className="px-2 py-1 border rounded-r bg-[#ffeeee]"
-                        onClick={() => handleQuantityChange(item.id, item.quantity + 1)}
-                      >
-                        +
-                      </button>
+                      <button className="px-2 py-1 border rounded-r bg-[#ffeeee]" onClick={() => handleQuantityChange(item.id, item.quantity + 1)}>+</button>
                     </div>
                   </div>
                 </div>
-
-                {/* Remove Button */}
                 <div className="flex flex-col items-end mt-4 sm:mt-0 sm:ml-auto">
-                  <button
-                    className="text-red-500 hover:underline mb-2"
-                    onClick={() => handleRemoveItem(item.id)}
-                  >
-                    Remove
-                  </button>
+                  <button className="text-red-500 hover:underline mb-2" onClick={() => handleRemoveItem(item.id)}>Remove</button>
                 </div>
               </div>
             ))}
@@ -118,32 +119,38 @@ const Checkout = () => {
         )}
       </div>
 
-      {/* Subtotal and Checkout Section */}
       <div className="bg-orange-50 px-4 sm:px-8 lg:px-20 py-6 mt-4">
         <div className="flex flex-col sm:flex-row justify-between items-center">
-          {/* Subtotal */}
           <div className="relative w-full sm:w-auto">
-            <h2
-              className="text-xl sm:text-2xl font-semibold text-gray-600 absolute left-0"
-              style={{ fontFamily: "'Quintessential', cursive" }}
-            >
-              Subtotal:
-            </h2>
-            {/* Adjusted margin classes */}
-            <span className="text-xl font-semibold text-gray-600 ml-52 sm:ml-32 md:ml-40 lg:ml-32">
-              Rp {calculateTotal()}
-            </span>
+            <h2 className="text-xl sm:text-2xl font-semibold text-gray-600">Subtotal:</h2>
+            <span className="text-xl font-semibold text-gray-600">Rp {calculateTotal()}</span>
           </div>
-
-          {/* Checkout Button */}
-          <button
-            className="mt-4 sm:mt-0 px-6 py-2 bg-orange-500 text-white rounded-lg hover:bg-orange-600 w-full sm:w-auto"
-            onClick={handleCheckout}
-          >
-            Checkout
-          </button>
+          <button className="mt-4 sm:mt-0 px-6 py-2 bg-orange-500 text-white rounded-lg hover:bg-orange-600 w-full sm:w-auto" onClick={handleCheckout}>Checkout</button>
         </div>
       </div>
+
+      {showPopup && (
+        <div className="fixed inset-0 flex items-center justify-center bg-gray-900 bg-opacity-50">
+          <div className="bg-white p-6 rounded-lg shadow-lg">
+            <h2 className="text-xl font-semibold mb-4">Enter Order Details</h2>
+            <input type="text" placeholder="Address" className="w-full mb-2 p-2 border" value={formData.address} onChange={(e) => setFormData({ ...formData, address: e.target.value })} />
+            <select className="w-full mb-2 p-2 border" onChange={(e) => setFormData({ ...formData, paymentMethod: e.target.value })}>
+              <option value="">Select Payment Method</option>
+              <option value="Credit Card">Credit Card</option>
+              <option value="PayPal">PayPal</option>
+              <option value="Bank Transfer">Bank Transfer</option>
+            </select>
+            <select className="w-full mb-2 p-2 border" onChange={(e) => setFormData({ ...formData, shippingOption: e.target.value })}>
+              <option value="">Select Shipping Option</option>
+              <option value="Standard">Standard</option>
+              <option value="Express">Express</option>
+              <option value="Same-day Delivery">Same-day Delivery</option>
+            </select>
+            <button className="bg-green-500 text-white px-4 py-2 rounded mr-2" onClick={handleSubmitOrder}>Confirm</button>
+            <button className="bg-red-500 text-white px-4 py-2 rounded" onClick={() => setShowPopup(false)}>Cancel</button>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

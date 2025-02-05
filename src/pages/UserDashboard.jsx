@@ -95,6 +95,7 @@ const UserDashboard = () => {
   };
 
   return (
+    <div>
     <div className="flex flex-col lg:flex-row h-screen font-poppins pt-16">
       <div className="w-full lg:w-[250px] bg-[#FFD6D6] p-5 lg:p-10 flex flex-col items-center">
         <h3 className="text-center text-[#333] mb-0 text-sm lg:text-base">{name}</h3>
@@ -287,6 +288,8 @@ const UserDashboard = () => {
           </>
         )}
       </div>
+    </div>
+      <Footer/>
     </div>
   );
 };
