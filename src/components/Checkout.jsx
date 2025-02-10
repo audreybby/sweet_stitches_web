@@ -9,6 +9,7 @@ const Checkout = () => {
   const [showPopup, setShowPopup] = useState(false);
   const [formData, setFormData] = useState({
     address: "",
+    phoneNumber: "",
     paymentMethod: "",
     shippingOption: ""
   });
@@ -17,12 +18,24 @@ const Checkout = () => {
     const fetchUserAddress = async () => {
       const user = auth.currentUser;
       if (user) {
-        const userDoc = await getDoc(doc(db, "users", user.uid));
-        if (userDoc.exists()) {
-          setFormData(prevData => ({ ...prevData, address: userDoc.data().address || "" }));
+        try {
+          const userRef = doc(db, "users", user.uid);
+          const userDoc = await getDoc(userRef);
+          if (userDoc.exists() && userDoc.data()) {
+            setFormData(prevData => ({
+              ...prevData,
+              address: userDoc.data().address || "",
+              phoneNumber: userDoc.data().phone || ""
+            }));
+          } else {
+            console.warn("User data not found in Firestore.");
+          }
+        } catch (error) {
+          console.error("Error fetching user address:", error);
         }
       }
     };
+
     fetchUserAddress();
   }, []);
 
@@ -46,14 +59,35 @@ const Checkout = () => {
     setShowPopup(true);
   };
 
+  const redirectToWhatsApp = (order) => {
+    const ownerNumber = "6287716272187";
+    const message = `Halo, saya ingin mengkonfirmasi order berikut:%0A%0A` +
+      `🆔 Order ID: ${order.id}%0A` +
+      `💰 Total: Rp${order.total}%0A` +
+      `📦 Status: ${order.status}%0A%0A` +
+      `Detail Items:%0A` +
+      order.items.map(item => `- ${item.name} (Rp${item.price})`).join("%0A") +
+      `%0A%0AMohon konfirmasinya, terima kasih!`;
+  
+    const whatsappURL = `https://wa.me/${ownerNumber}?text=${message}`;
+    window.open(whatsappURL, "_blank");
+  };
+  
   const handleSubmitOrder = async () => {
-    if (!formData.address || !formData.paymentMethod || !formData.shippingOption) {
+    const user = auth.currentUser;
+    if (!user) {
+      alert("You must be logged in to place an order.");
+      return;
+    }
+
+    if (!formData.address || !formData.phoneNumber || !formData.paymentMethod || !formData.shippingOption) {
       alert("Please fill in all details.");
       return;
     }
-    
+
     try {
       const orderData = {
+        userId: user.uid,
         items: cart.map((item) => ({
           name: item.name,
           price: item.price,
@@ -62,6 +96,7 @@ const Checkout = () => {
         })),
         total: calculateTotal(),
         address: formData.address,
+        phoneNumber: formData.phoneNumber,
         paymentMethod: formData.paymentMethod,
         shippingOption: formData.shippingOption,
         status: "Menunggu Konfirmasi",
@@ -71,11 +106,16 @@ const Checkout = () => {
       await addDoc(collection(db, "orders"), orderData);
       clearCart();
       setShowPopup(false);
+      redirectToWhatsApp(orderData);
       alert("Order berhasil dibuat! Admin akan segera menghubungi Anda.");
     } catch (error) {
       console.error("Error saving order:", error);
       alert("Terjadi kesalahan saat menyimpan order.");
     }
+  };
+
+  const formatPrice = (price) => {
+    return `Rp ${parseInt(price).toLocaleString("id-ID")}`;
   };
 
   return (
@@ -97,7 +137,7 @@ const Checkout = () => {
                   </div>
                   <div className="ml-4 flex flex-col w-full">
                     <h2 className="text-lg sm:text-xl font-semibold text-gray-800 mt-2">{item.name}</h2>
-                    <div className="text-gray-700 font-semibold mt-2">Rp {item.price}</div>
+                    <div className="text-gray-700 font-semibold mt-2">{formatPrice(item.price)}</div>
                     <div className="flex items-center mt-4">
                       <button className="px-2 py-1 border rounded-l bg-[#ffeeee]" onClick={() => handleQuantityChange(item.id, item.quantity - 1)}>-</button>
                       <span className="px-4">{item.quantity}</span>
@@ -119,13 +159,13 @@ const Checkout = () => {
         )}
       </div>
 
-      <div className="bg-orange-50 px-4 sm:px-8 lg:px-20 py-6 mt-4">
+      <div className="bg-pink-50 px-4 sm:px-8 lg:px-20 py-6 mt-4">
         <div className="flex flex-col sm:flex-row justify-between items-center">
           <div className="relative w-full sm:w-auto">
             <h2 className="text-xl sm:text-2xl font-semibold text-gray-600">Subtotal:</h2>
             <span className="text-xl font-semibold text-gray-600">Rp {calculateTotal()}</span>
           </div>
-          <button className="mt-4 sm:mt-0 px-6 py-2 bg-orange-500 text-white rounded-lg hover:bg-orange-600 w-full sm:w-auto" onClick={handleCheckout}>Checkout</button>
+          <button className="mt-4 sm:mt-0 px-6 py-2 bg-pink-400 text-white rounded-lg hover:bg-pink-600 w-full sm:w-auto" onClick={handleCheckout}>Checkout</button>
         </div>
       </div>
 
@@ -134,6 +174,7 @@ const Checkout = () => {
           <div className="bg-white p-6 rounded-lg shadow-lg">
             <h2 className="text-xl font-semibold mb-4">Enter Order Details</h2>
             <input type="text" placeholder="Address" className="w-full mb-2 p-2 border" value={formData.address} onChange={(e) => setFormData({ ...formData, address: e.target.value })} />
+            <input type="text" placeholder="Phone Number" className="w-full mb-2 p-2 border" value={formData.phoneNumber} onChange={(e) => setFormData({ ...formData, phoneNumber: e.target.value })} />
             <select className="w-full mb-2 p-2 border" onChange={(e) => setFormData({ ...formData, paymentMethod: e.target.value })}>
               <option value="">Select Payment Method</option>
               <option value="Credit Card">Credit Card</option>

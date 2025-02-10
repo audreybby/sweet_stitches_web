@@ -1,8 +1,6 @@
-// eslint-disable-next-line no-unused-vars
 import React, { useState, useEffect } from "react";
-import { getFirestore, doc, getDoc, setDoc } from "firebase/firestore";
+import { getFirestore, doc, getDoc, setDoc, collection, query, where, getDocs } from "firebase/firestore";
 import { auth } from "../firebase";
-import { useNavigate } from "react-router-dom";
 import LogoutButton from "../components/LogoutButton";
 import Footer from "../components/Footer";
 
@@ -14,10 +12,7 @@ const UserDashboard = () => {
   const [address, setAddress] = useState("");
   const [errors, setErrors] = useState({});
   const [originalEmail, setOriginalEmail] = useState("");
-  const [user, setUser] = useState(null);
-  const [role, setRole] = useState(null);
-  const navigate = useNavigate();
-
+  const [orders, setOrders] = useState([]);
   const db = getFirestore();
 
   useEffect(() => {
@@ -32,111 +27,106 @@ const UserDashboard = () => {
           setOriginalEmail(userData.email || "");
           setPhone(userData.phone || "");
           setAddress(userData.address || "");
-        } else {
-          await setDoc(doc(db, "users", user.uid), {
-            name: "New User",
-            email: user.email,
-            phone: "",
-            address: "",
-          });
-          setName("New User");
-          setEmail(user.email);
-          setOriginalEmail(user.email); 
         }
       }
     };
 
+    const fetchOrders = async () => {
+      const user = auth.currentUser;
+      if (user) {
+        const ordersRef = collection(db, "orders");
+        const q = query(ordersRef, where("userId", "==", user.uid));
+        const querySnapshot = await getDocs(q);
+        setOrders(querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })));
+      }
+    };
+
     fetchUserProfile();
-  }, [db]);
-
-  const validateForm = (formData) => {
-    const newErrors = {};
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-
-    if (!formData.get("username")) newErrors.username = "Username is required.";
-    if (!formData.get("email")) {
-      newErrors.email = "Email is required.";
-    } else if (!emailRegex.test(formData.get("email"))) {
-      newErrors.email = "Please enter a valid email address.";
-    } else if (formData.get("email") !== originalEmail) {
-      newErrors.email = "Email cannot be changed.";
-    }
-    if (!formData.get("phone")) newErrors.phone = "Phone number is required.";
-    if (!formData.get("address")) newErrors.address = "Address is required.";
-    return newErrors;
-  };
+    fetchOrders();
+  }, []);
 
   const handleFormSubmit = async (event) => {
     event.preventDefault();
     const formData = new FormData(event.target);
-    const validationErrors = validateForm(formData);
+    const validationErrors = {};
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
+    if (!formData.get("username")) validationErrors.username = "Username is required.";
+    if (!formData.get("email")) {
+      validationErrors.email = "Email is required.";
+    } else if (!emailRegex.test(formData.get("email"))) {
+      validationErrors.email = "Please enter a valid email address.";
+    } else if (formData.get("email") !== originalEmail) {
+      validationErrors.email = "Email cannot be changed.";
+    }
+    if (!formData.get("phone")) validationErrors.phone = "Phone number is required.";
+    if (!formData.get("address")) validationErrors.address = "Address is required.";
+    
     if (Object.keys(validationErrors).length > 0) {
       setErrors(validationErrors);
-    } else {
-      setErrors({});
-      const updatedData = {
-        name: formData.get("username"),
-        email: formData.get("email"),
-        phone: formData.get("phone"),
-        address: formData.get("address"),
-      };
+      return;
+    }
 
-      setName(updatedData.name);
-      setEmail(updatedData.email);
-      setPhone(updatedData.phone);
-      setAddress(updatedData.address);
+    setErrors({});
+    const updatedData = {
+      name: formData.get("username"),
+      email: formData.get("email"),
+      phone: formData.get("phone"),
+      address: formData.get("address"),
+    };
 
-      const user = auth.currentUser;
-      if (user) {
-        await setDoc(doc(db, "users", user.uid), updatedData, { merge: true });
-      }
+    setName(updatedData.name);
+    setEmail(updatedData.email);
+    setPhone(updatedData.phone);
+    setAddress(updatedData.address);
+
+    const user = auth.currentUser;
+    if (user) {
+      await setDoc(doc(db, "users", user.uid), updatedData, { merge: true });
     }
   };
 
+    const formatRupiah = (number) => {
+    return new Intl.NumberFormat("id-ID", {
+      style: "currency",
+      currency: "IDR",
+    }).format(number);
+  };  
+
   return (
-    <div>
-    <div className="flex flex-col lg:flex-row h-screen font-poppins pt-16">
-      <div className="w-full lg:w-[250px] bg-[#FFD6D6] p-5 lg:p-10 flex flex-col items-center">
-        <h3 className="text-center text-[#333] mb-0 text-sm lg:text-base">{name}</h3>
-        <p className="text-center text-xs lg:text-sm text-[#777]">{email}</p>
-
-        <nav className="mt-8 w-full flex flex-col lg:block items-center lg:items-start">
-          <ul className="list-none p-0 flex flex-row lg:flex-col w-full justify-center gap-4 lg:gap-0">
-            <li>
-              <button
-                onClick={() => setActiveMenu("account")}
-                className={`w-full text-left p-1 text-md lg:text-md ${
-                  activeMenu === "account"
-                    ? "text-[#B3114B] font-bold"
-                    : "text-[#555]"
-                } hover:text-[#FF8A8A]`}
+    <div className="flex flex-col min-h-screen font-poppins">
+      <div className="flex flex-col lg:flex-row flex-1 pt-16">
+        <aside className="w-full lg:w-[250px] bg-[#FFD6D6] p-5 lg:p-10 flex flex-col items-center sticky top-0">
+          <h3 className="pt-2 text-center text-[#333] mb-0 text-sm lg:text-base">{name}</h3>
+          <p className="text-center text-xs lg:text-sm text-[#777]">{email}</p>
+          <nav className="mt-6 w-full flex flex-col lg:block items-center lg:items-start">
+            <ul className="list-none p-0 flex flex-row lg:flex-col w-full justify-center gap-4 lg:gap-0">
+              <li>
+                <button
+                onClick={() => setActiveMenu("account")} 
+                className={`w-full text-left p-1 mt-2 text-md lg:text-md ${activeMenu === "account" ? "text-[#B3114B] font-bold" : "text-[#555]"} hover:text-[#FF8A8A]`}
                 style={{ fontFamily: "'Quintessential', cursive" }}
-              >
+                >
                 My Account
-              </button>
-            </li>
-            <li>
-              <button
+                </button>
+              </li>
+              <li>
+                <button
                 onClick={() => setActiveMenu("order")}
-                className={`w-full text-left p-1 text-md lg:text-md ${
-                  activeMenu === "order"
-                    ? "text-[#B3114B] font-bold"
-                    : "text-[#555]"
-                } hover:text-[#FF8A8A]`}
+                className={`w-full text-left p-1 mt-2 text-md lg:text-md ${activeMenu === "order" ? "text-[#B3114B] font-bold" : "text-[#555]"} hover:text-[#FF8A8A]`}
                 style={{ fontFamily: "'Quintessential', cursive" }}
-              >
+                >
                 My Order
-              </button>
-            </li>
-            <LogoutButton/>
-          </ul>
-        </nav>
-      </div>
+                </button>
+              </li>
+              <LogoutButton />
+            </ul>
+          </nav>
+        </aside>
 
-      <div className="flex-1 p-5 lg:p-10 bg-white">
-        {activeMenu === "account" && (
-          <>
+        <main className="flex-1 p-5 lg:p-10 bg-white overflow-y-auto">
+          {activeMenu === "account" && (
+           <>
             <h1
               className="text-xl lg:text-3xl mb-2"
               style={{ fontFamily: "'Quintessential', cursive" }}
@@ -231,65 +221,40 @@ const UserDashboard = () => {
               </button>
             </form>
           </>
-        )}
-
-        {activeMenu === "order" && (
-          <>
-            <h1
-              className="text-xl lg:text-3xl mb-2"
-              style={{ fontFamily: "'Quintessential', cursive" }}
-            >
-              Order Details
-            </h1>
-            <p className="text-xs lg:text-sm text-[#777] mb-8">
-              Manage and control your orders
-            </p>
-            <div className="flex flex-col lg:flex-row border border-gray-300 rounded-lg overflow-hidden">
-              <div className="bg-[#CCE2CB] p-5 w-full lg:w-1/2">
-                <p>
-                  <strong>Order ID:</strong> #23952220
-                </p>
-                <p>
-                  <strong>Date:</strong> 22 January 2024
-                </p>
-                <p>
-                  <strong>Total Amount:</strong> Rp150.000,00
-                </p>
-                <p>
-                  <strong>Order Status:</strong>{" "}
-                  <span className="text-green-600">Confirmed</span>
-                </p>
-              </div>
-              <div className="p-5 flex-1">
-                <div className="flex items-center mb-3">
-                  <img
-                    src="https://via.placeholder.com/50"
-                    alt="Brown Bear Crochet"
-                    className="mr-3"
-                  />
-                  <div>
-                    <p>Brown Bear Crochet</p>
-                    <p>Rp60.000,00</p>
+          )}
+          {activeMenu === "order" && (
+            <>
+              <h1 className="text-xl lg:text-3xl mb-2">Order Details</h1>
+              <p className="text-xs lg:text-sm text-[#777] mb-8">Manage and control your orders</p>
+              {orders.length > 0 ? (
+                orders.map((order) => (
+                  <div key={order.id} className="border border-gray-300 rounded-lg overflow-hidden mb-4">
+                    <div className="bg-[#CCE2CB] p-5">
+                      <p><strong>Order ID:</strong> {order.id}</p>
+                      <p><strong>Total Amount:</strong> {formatRupiah(order.total)}</p>
+                      <p><strong>Order Status:</strong> <span className="text-green-600">{order.status}</span></p>
+                    </div>
+                    <div className="p-5">
+                      {order.items.map((item, index) => (
+                        <div key={index} className="flex items-center mb-3">
+                          <img src={item.image} alt={item.name} className="mr-3 w-12 h-12" />
+                          <div>
+                            <p>{item.name}</p>
+                            <p>{formatRupiah(item.price)}</p>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
                   </div>
-                </div>
-                <div className="flex items-center">
-                  <img
-                    src="https://via.placeholder.com/50"
-                    alt="Cookies Choco"
-                    className="mr-3"
-                  />
-                  <div>
-                    <p>Cookies Choco</p>
-                    <p>Rp90.000,00</p>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </>
-        )}
+                ))
+              ) : (
+                <p>No orders found.</p>
+              )}
+            </>
+          )}
+        </main>
       </div>
-    </div>
-      <Footer/>
+      <Footer />
     </div>
   );
 };

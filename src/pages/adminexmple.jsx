@@ -6,10 +6,9 @@ import buyer from "../assets/buyer.png";
 import { db, auth } from "../firebase";
 import { useNavigate } from "react-router-dom";
 import { onAuthStateChanged } from "firebase/auth";
-import { collection, addDoc, getDocs, getDoc, updateDoc, deleteDoc, doc } from "firebase/firestore";
+import { collection, addDoc, getDocs, getDoc, updateDoc, deleteDoc, doc, setDoc } from "firebase/firestore";
 import LogoutButton from "../components/LogoutButton";
 
-// Function to compress the image
 const compressImage = async (file, maxWidth, maxHeight) => {
     const img = document.createElement("img");
     img.src = URL.createObjectURL(file);
@@ -41,25 +40,24 @@ const compressImage = async (file, maxWidth, maxHeight) => {
                 } else {
                     reject(new Error("Image compression failed"));
                 }
-            }, "image/jpeg", 0.8); // Adjust quality here
+            }, "image/jpeg", 0.8);
         };
         img.onerror = (error) => reject(error);
     });
 };
 
-// Convert the image to Base64
 const convertToBase64 = (file) => {
     return new Promise((resolve, reject) => {
         const reader = new FileReader();
-        reader.readAsDataURL(file);  // Read the file as base64
+        reader.readAsDataURL(file);
         reader.onload = () => resolve(reader.result);
         reader.onerror = (error) => reject(error);
     });
 };
 
 const Admin = () => {
-    const [user, setUser] = useState(null);
-    const [role, setRole] = useState(null);
+    const [, setUser] = useState(null);
+    const [, setRole] = useState(null);
     const navigate = useNavigate();
     const [products, setProducts] = useState([]);
     const [editingProduct, setEditingProduct] = useState(null);
@@ -70,6 +68,13 @@ const Admin = () => {
     const [editedReview, setEditedReview] = useState({ description: "", imageFile: null });
     const [newReview, setNewReview] = useState({ description: "", imageFile: null });
     const [orders, setOrders] = useState([]);
+    const [events, setEvents] = useState([]);
+    const [editingEvent, setEditingEvent] = useState(null);
+    const [editedEvent, setEditedEvent] = useState({ name: "", price: "", category: "crochet", imageFile: null });
+    const [newEvent, setNewEvent] = useState({ name: "", price: "", category: "crochet", imageFile: null });
+    const [eventName, setEventName] = useState("");
+    const [newEventName, setNewEventName] = useState("");
+    const [selectedOrder, setSelectedOrder] = useState(null);
 
     useEffect(() => {
         const unsubscribe = onAuthStateChanged(auth, async (currentUser) => {
@@ -88,6 +93,35 @@ const Admin = () => {
 
         return () => unsubscribe();
     }, []);
+
+    // Fetch event name from Firestore
+    const fetchEventName = async () => {
+        try {
+            const docRef = doc(db, "events", "eventName");
+            const docSnap = await getDoc(docRef);
+            if (docSnap.exists()) {
+                setEventName(docSnap.data().name);
+            }
+        } catch (error) {
+            console.error("Error fetching event name:", error);
+        }
+    };
+
+    useEffect(() => {
+        fetchEventName();
+    }, []);
+
+    // Update event name in Firestore
+    const updateEventsName = async () => {
+        try {
+            const docRef = doc(db, "events", "eventName");
+            await setDoc(docRef, { name: newEventName });
+            setEventName(newEventName);
+            setNewEventName("");
+        } catch (error) {
+            console.error("Error updating event name:", error);
+        }
+    };
 
     // Fetch products
     const fetchProducts = async () => {
@@ -153,7 +187,22 @@ const Admin = () => {
         }
       };
 
-    // Add product
+    const formatPrice = (price) => {
+        return new Intl.NumberFormat("id-ID", {
+          style: "currency",
+          currency: "IDR",
+          minimumFractionDigits: 0,
+        }).format(price);
+    };
+
+    const openOrderDetails = (order) => {
+        setSelectedOrder(order);
+    };
+    
+    const closeModal = () => {
+        setSelectedOrder(null);
+    };
+
     const addProduct = async () => {
         if (newProduct.name.trim() && newProduct.price.trim() && newProduct.imageFile) {
             try {
@@ -161,17 +210,15 @@ const Admin = () => {
                 const maxWidth = 800;
                 const maxHeight = 600;
 
-                // Compress the image before uploading
                 const compressedBlob = await compressImage(file, maxWidth, maxHeight);
 
-                // Convert the compressed image into base64
                 const base64Image = await convertToBase64(compressedBlob);
 
                 await addDoc(collection(db, "products"), {
                     name: newProduct.name,
                     price: newProduct.price,
                     category: newProduct.category,
-                    image: base64Image,  // Use base64 image
+                    image: base64Image,
                 });
 
                 setNewProduct({ name: "", price: "", category: "", imageFile: null });
@@ -182,13 +229,11 @@ const Admin = () => {
         }
     };
 
-    // Edit product
     const handleEdit = (product) => {
         setEditingProduct(product);
         setEditedProduct({ name: product.name, price: product.price, category: product.category, imageFile: null });
     };
 
-    // Update product
     const updateProduct = async () => {
         if (!editingProduct) return;
 
@@ -204,11 +249,10 @@ const Admin = () => {
                 const maxWidth = 800;
                 const maxHeight = 600;
 
-                // Compress the image before updating
                 const compressedBlob = await compressImage(file, maxWidth, maxHeight);
                 const base64Image = await convertToBase64(compressedBlob);
 
-                updatedData.image = base64Image; // Use base64 image
+                updatedData.image = base64Image;
             }
 
             const productDoc = doc(db, "products", editingProduct.id);
@@ -317,6 +361,110 @@ const Admin = () => {
         setEditedReview({ description: "", imageFile: null });
     };
 
+     // Fetch events
+     const fetchEvents = async () => {
+        try {
+            const eventsCollection = collection(db, "events");
+            const eventSnapshot = await getDocs(eventsCollection);
+            const eventList = eventSnapshot.docs.map((doc) => ({
+                id: doc.id,
+                ...doc.data(),
+                price: Number(doc.data().price),
+            }));
+            setEvents(eventList);
+        } catch (error) {
+            console.error("Error fetching products:", error);
+        }
+    };
+
+    useEffect(() => {
+        fetchEvents();
+    }, []);
+
+    // Add events
+    const addEvent = async () => {
+        if (newEvent.name.trim() && newEvent.price.trim() && newEvent.imageFile) {
+            try {
+                const file = newEvent.imageFile;
+                const maxWidth = 800;
+                const maxHeight = 600;
+
+                // Compress the image before uploading
+                const compressedBlob = await compressImage(file, maxWidth, maxHeight);
+
+                // Convert the compressed image into base64
+                const base64Image = await convertToBase64(compressedBlob);
+
+                await addDoc(collection(db, "events"), {
+                    name: newEvent.name,
+                    price: newEvent.price,
+                    category: newEvent.category,
+                    image: base64Image,  // Use base64 image
+                });
+
+                setNewEvent({ name: "", price: "", category: "", imageFile: null });
+                fetchEvents();
+            } catch (error) {
+                console.error("Error adding product:", error);
+            }
+        }
+    };
+
+    // Edit events
+    const handleEditEvent = (event) => {
+        setEditingEvent(event);
+        setEditedEvent({ name: event.name, price: event.price, category: event.category, imageFile: null });
+    };
+
+    // Update events
+    const updateEvent = async () => {
+        if (!editingEvent) return;
+
+        try {
+            const updatedData = {
+                name: editedEvent.name,
+                price: editedEvent.price,
+                category: editedEvent.category,
+            };
+
+            if (editedEvent.imageFile) {
+                const file = editedEvent.imageFile;
+                const maxWidth = 800;
+                const maxHeight = 600;
+
+                // Compress the image before updating
+                const compressedBlob = await compressImage(file, maxWidth, maxHeight);
+                const base64Image = await convertToBase64(compressedBlob);
+
+                updatedData.image = base64Image; // Use base64 image
+            }
+
+            const eventDoc = doc(db, "events", editingEvent.id);
+            await updateDoc(eventDoc, updatedData);
+            fetchEvents();
+            setEditingEvent(null);
+        } catch (error) {
+            console.error("Error updating product:", error);
+        }
+    };
+
+    // Delete events
+    const deleteEvent = async (id) => {
+        try {
+            const eventDoc = doc(db, "events", id);
+            await deleteDoc(eventDoc);
+            fetchEvents();
+        } catch (error) {
+            console.error("Error deleting product:", error);
+        }
+    };
+
+    // Cancel edit event
+    const cancelEditEvent = () => {
+        setEditingEvent(null);
+        setEditedEvent({ name: "", price: "", category: "", imageFile: null });
+    };
+
     return (
         <div className="pt-24 px-4 md:px-16">
             <div className="top mb-5">
@@ -329,26 +477,33 @@ const Admin = () => {
             </div>
             <div className="px-5">
                 <Tabs>
-                    <TabList className="flex flex-wrap justify-center space-x-4 md:space-x-6">
-                        <Tab className="p-4 sm:w-1/2 md:w-1/4 w-full cursor-pointer">
+                    <TabList className="flex flex-wrap justify-center">
+                        <Tab className="p-4  w-1/2 sm:w-1/2 md:w-1/4 cursor-pointer">
                             <div className="border bg-pink-50 hover:bg-pink-100 border-pink-100 px-4 py-3 rounded-xl text-center">
                                 <img src={keranjang} alt="" className="text-pink-500 w-12 h-12 mb-3 inline-block" />
                                 <h2 className="font-medium text-2xl text-pink-400">{products.length}</h2>
-                                <p className="text-pink-500 font-bold">Total Products</p>
+                                <p className="text-pink-500 font-bold">Products</p>
                             </div>
                         </Tab>
-                        <Tab className="p-4 sm:w-1/2 md:w-1/4 w-full cursor-pointer">
+                        <Tab className="p-4  w-1/2 sm:w-1/2 md:w-1/4 cursor-pointer">
                             <div className="border bg-pink-50 hover:bg-pink-100 border-pink-100 px-4 py-3 rounded-xl text-center">
                                 <img src={buyer} alt="" className="text-pink-500 w-12 h-12 mb-3 inline-block" />
                                 <h2 className="font-medium text-2xl text-pink-400">{review.length}</h2>
                                 <p className="text-pink-500 font-bold">Reviews</p>
                             </div>
                         </Tab>
-                        <Tab className="p-4 sm:w-1/2 md:w-1/4 w-full cursor-pointer">
+                        <Tab className="p-4  w-1/2 sm:w-1/2 md:w-1/4 cursor-pointer">
                             <div className="border bg-pink-50 hover:bg-pink-100 border-pink-100 px-4 py-3 rounded-xl text-center">
                                 <img src={order} alt="" className="text-pink-500 w-12 h-12 mb-3 inline-block" />
                                 <h2 className="font-medium text-2xl text-pink-400">{orders.length}</h2>
                                 <p className="text-pink-500 font-bold">Orders</p>
+                            </div>
+                        </Tab>
+                        <Tab className="p-4  w-1/2 sm:w-1/2 md:w-1/4 cursor-pointer">
+                            <div className="border bg-pink-50 hover:bg-pink-100 border-pink-100 px-4 py-3 rounded-xl text-center">
+                                <img src={keranjang} alt="" className="text-pink-500 w-12 h-12 mb-3 inline-block" />
+                                <h2 className="font-medium text-2xl text-pink-400">{events.length}</h2>
+                                <p className="text-pink-500 font-bold">Events</p>
                             </div>
                         </Tab>
                     </TabList>
@@ -525,7 +680,12 @@ const Admin = () => {
                                         {orders.map((order, index) => (
                                           <tr key={order.id} className="border-t">
                                             <td className="py-2 px-4">{index + 1}</td>
-                                            <td className="py-2 px-4">{order.id}</td>
+                                            <td
+                                                className="py-2 px-4 text-blue-500 cursor-pointer hover:underline"
+                                                onClick={() => openOrderDetails(order)}
+                                            >
+                                                {order.id}
+                                            </td>
                                             <td className="py-2 px-4">
                                               <ul>
                                                 {order.items.map((item, i) => (
@@ -563,7 +723,136 @@ const Admin = () => {
                                     </table>
                                   </div>
                                 </div>
+
+                                {selectedOrder && (
+                                    <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50">
+                                    <div className="bg-white p-5 rounded-lg w-96">
+                                        <h2 className="text-xl font-bold mb-3">Order Details</h2>
+                                        <p><strong>Order ID:</strong> {selectedOrder.id}</p>
+                                        <p><strong>Phone Number:</strong> {selectedOrder.phoneNumber}</p>
+                                        <p><strong>Address:</strong> {selectedOrder.address}</p>
+                                        <p><strong>Total:</strong> {formatPrice(selectedOrder.total)}</p>
+                                        <p><strong>Status:</strong> {selectedOrder.status}</p>
+                                        <h3 className="mt-3 font-semibold">Items:</h3>
+                                        <ul>
+                                        {selectedOrder.items.map((item, index) => (
+                                            <li key={index}>
+                                            {item.name} x {item.quantity} - {formatPrice(item.price * item.quantity)}
+                                            </li>
+                                        ))}
+                                        </ul>
+                                        <button
+                                        className="mt-4 bg-red-500 text-white px-4 py-2 rounded-md hover:bg-red-600"
+                                        onClick={closeModal}
+                                        >
+                                        Close
+                                        </button>
+                                    </div>
+                                    </div>
+                                )}
                               </TabPanel>
+
+                    <TabPanel>
+                    <div className="py-5">
+                            <h1 className="text-xl text-pink-300 font-bold mb-3">Event Name</h1>
+                            <div className="flex space-x-2">
+                                <input
+                                    type="text"
+                                    value={newEventName}
+                                    onChange={(e) => setNewEventName(e.target.value)}
+                                    placeholder="Enter new event name"
+                                    className="border p-2 rounded-md w-1/2"
+                                />
+                                <button onClick={updateEventsName} className="bg-pink-500 text-white p-2 rounded-md hover:bg-pink-600">
+                                    Update Event Name
+                                </button>
+                            </div>
+                            <p className="text-lg mt-2"><strong>Current Event:</strong> {eventName}</p>
+                        </div>
+                        <div className="py-5">
+                            <div className="flex flex-col sm:flex-row justify-between items-center mb-5 space-y-4 sm:space-y-0">
+                                <h1 className="text-xl text-pink-300 font-bold">All Events</h1>
+                                <div className="flex flex-col sm:flex-row space-y-2 sm:space-y-0 sm:space-x-2">
+                                    <input
+                                        type="text"
+                                        placeholder="Event Name"
+                                        value={newEvent.name}
+                                        onChange={(e) => setNewEvent({ ...newEvent, name: e.target.value })}
+                                        className="border p-2 rounded-md"
+                                    />
+                                    <input
+                                        type="text"
+                                        placeholder="Price"
+                                        value={newEvent.price}
+                                        onChange={(e) => setNewEvent({ ...newEvent, price: e.target.value })}
+                                        className="border p-2 rounded-md"
+                                    />
+                                    <input
+                                        type="file"
+                                        accept="image/*"
+                                        onChange={(e) => setNewEvent({ ...newEvent, imageFile: e.target.files[0] })}
+                                        className="border p-2 rounded-md"
+                                    />
+                                    <select
+                                        value={newEvent.category}
+                                        onChange={(e) => setNewEvent({ ...newEvent, category: e.target.value })}
+                                        className="border p-2 rounded-md"
+                                    >
+                                        <option value="crochet">Crochet</option>
+                                        <option value="cake">Cake</option>
+                                    </select>
+                                    <button
+                                        onClick={addEvent}
+                                        className="bg-pink-500 text-white p-2 rounded-md hover:bg-pink-600"
+                                    >
+                                        Add Product
+                                    </button>
+                                </div>
+                            </div>
+
+                            <div className="overflow-x-auto">
+                                <table className="table-auto w-full text-sm md:text-base">
+                                    <thead>
+                                        <tr className="bg-pink-100">
+                                            <th className="py-2 px-4">S.No.</th>
+                                            <th className="py-2 px-4">Image</th>
+                                            <th className="py-2 px-4">Name</th>
+                                            <th className="py-2 px-4">Price</th>
+                                            <th className="py-2 px-4">Category</th>
+                                            <th className="py-2 px-4">Actions</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {events.map((event, index) => (
+                                            <tr key={event.id} className="border-t">
+                                                <td className="py-2 px-4">{index + 1}</td>
+                                                <td className="py-2 px-4">
+                                                    {event.image && <img src={event.image} alt={event.name} className="h-16 w-16 object-cover" />}
+                                                </td>
+                                                <td className="py-2 px-4">{event.name}</td>
+                                                <td className="py-2 px-4">{event.price}</td>
+                                                <td className="py-2 px-4">{event.category}</td>
+                                                <td className="py-2 px-4">
+                                                    <button
+                                                        onClick={() => handleEditEvent(event)}
+                                                        className="bg-blue-500 text-white p-2 rounded-md hover:bg-blue-600"
+                                                    >
+                                                        Edit
+                                                    </button>
+                                                    <button
+                                                        onClick={() => deleteEvent(event.id)}
+                                                        className="bg-red-500 text-white p-2 rounded-md hover:bg-red-600 ml-2"
+                                                    >
+                                                        Delete
+                                                    </button>
+                                                </td>
+                                            </tr>
+                                        ))}
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </TabPanel>
                 </Tabs>
             </div>
 
@@ -662,6 +951,68 @@ const Admin = () => {
                             </button>
                             <button
                                 onClick={cancelEditReview}
+                                className="bg-gray-500 text-white p-2 rounded-md hover:bg-gray-600 ml-2"
+                            >
+                                Cancel
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {editingEvent && (
+                <div className="modal bg-gray-800 bg-opacity-50 fixed inset-0 flex items-center justify-center">
+                    <div className="bg-white p-6 rounded-md w-full max-w-lg">
+                        <h2>Edit Event</h2>
+                        <label>
+                            Name:
+                            <input
+                                type="text"
+                                value={editedEvent.name}
+                                onChange={(e) => setEditedEvent({ ...editedEvent, name: e.target.value })}
+                                className="border p-2 rounded-md w-full"
+                            />
+                        </label>
+                        <label>
+                            Price:
+                            <input
+                                type="text"
+                                value={editedEvent.price}
+                                onChange={(e) => setEditedEvent({ ...editedEvent, price: e.target.value })}
+                                className="border p-2 rounded-md w-full"
+                            />
+                        </label>
+                        <label>
+                            Category:
+                            <select
+                                value={editedEvent.category}
+                                onChange={(e) => setEditedEvent({ ...editedEvent, category: e.target.value })}
+                                className="border p-2 rounded-md w-full"
+                            >
+                                <option value="crochet">Crochet</option>
+                                <option value="cake">Cake</option>
+                            </select>
+                        </label>
+                        <label>
+                            Image:
+                            <input
+                                type="file"
+                                accept="image/*"
+                                onChange={(e) =>
+                                    setEditedEvent({ ...editedEvent, imageFile: e.target.files[0] })
+                                }
+                                className="border p-2 rounded-md"
+                            />
+                        </label>
+                        <div className="mt-4">
+                            <button
+                                onClick={updateEvent}
+                                className="bg-blue-500 text-white p-2 rounded-md hover:bg-blue-600"
+                            >
+                                Update Product
+                            </button>
+                            <button
+                                onClick={cancelEditEvent}
                                 className="bg-gray-500 text-white p-2 rounded-md hover:bg-gray-600 ml-2"
                             >
                                 Cancel

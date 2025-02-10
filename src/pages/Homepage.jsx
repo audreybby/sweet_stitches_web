@@ -2,7 +2,8 @@
 import React from "react";
 import bgImage from "../assets/bg.jpg"; 
 import aboutImage from "../assets/about.jpg"; 
-import Iconsig from "../assets/cart.png"
+import Iconsig from "../assets/Instagram.png"
+import Footer from "../components/Footer";
 
 const Homepage = () => {
   return (
@@ -12,10 +13,9 @@ const Homepage = () => {
         className="min-h-screen w-full flex justify-center items-center bg-cover bg-center relative"
         style={{ backgroundImage: `url(${bgImage})` }}
       >
-        {/* Overlay putih dengan opacity */}
+
         <div className="absolute top-0 left-0 w-full h-full bg-pink-500 opacity-20 z-10"></div>
 
-        {/* Efek shadow putih dari bawah ke atas */}
         <div className="absolute bottom-0 left-0 w-full h-1/3 bg-gradient-to-t from-white to-transparent z-15"></div>
 
         <h2
@@ -42,7 +42,6 @@ const Homepage = () => {
             </p>
           </div>
 
-          {/* Garis */}
           <div className="hidden md:block w-px bg-gray-300 mx-8 min-h-[200px]"></div>
 
           <div className="w-full md:w-1/2 pl-8">
@@ -64,16 +63,13 @@ const Homepage = () => {
         </div>
       </section>
 
-      {/* About Section with Full Left Image and Full Right Text */}
       <section className="py-0 px-0">
         <div className="flex flex-col md:flex-row">
-          {/* Left Side Image */}
           <div
             className="w-full md:w-1/2 h-screen bg-cover bg-center"
             style={{ backgroundImage: `url(${aboutImage})`, backgroundPosition: "center" }}
           ></div>
 
-          {/* Right Side Text */}
           <div className="w-full md:w-1/2 h-screen bg-[#FEAEA5] p-8 flex items-center justify-center">
             <div>
               <h2 className="text-4xl font-bold mb-4 text-[#873930]"
@@ -87,6 +83,8 @@ const Homepage = () => {
           </div>
         </div>
       </section>
+
+      <Footer/>
     </div>
   );
 };
