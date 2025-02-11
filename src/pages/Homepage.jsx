@@ -50,7 +50,7 @@ const Homepage = () => {
             </p>
            <button className="bg-transparent text-black py-2 px-6 rounded-full mt-4 border-2 border-[#CCE2CB] hover:text-gray-500 hover:bg-[#CCE2CB] transition flex items-center gap-2">
             <a
-              href="https://www.instagram.com/ssweetstitches?igsh=bmNhYXJ3Zm1qZ2V3"
+              href="https://www.instagram.com/bekalin.kamu?igsh=eDc1dTA2dXFpYW0x"
               target="_blank"
               rel="noopener noreferrer"
               className="flex items-center gap-2"

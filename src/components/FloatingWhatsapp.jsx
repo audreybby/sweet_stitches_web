@@ -3,7 +3,7 @@ import React from 'react';
 import whatsappIcon from '../assets/Whatsapp.png'; 
 
 const FloatingWhatsApp = () => {
-  const phoneNumber = '6287716272187'; 
+  const phoneNumber = '6281393716998'; 
   const message = 'Halo, Saya tertarik dengan produk Sweet Stitches!'; 
   const whatsappURL = `https://wa.me/${phoneNumber}?text=${encodeURIComponent(message)}`;
 
