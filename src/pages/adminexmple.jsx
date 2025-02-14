@@ -94,7 +94,6 @@ const Admin = () => {
         return () => unsubscribe();
     }, []);
 
-    // Fetch event name from Firestore
     const fetchEventName = async () => {
         try {
             const docRef = doc(db, "events", "eventName");
@@ -111,7 +110,6 @@ const Admin = () => {
         fetchEventName();
     }, []);
 
-    // Update event name in Firestore
     const updateEventsName = async () => {
         try {
             const docRef = doc(db, "events", "eventName");
@@ -123,7 +121,6 @@ const Admin = () => {
         }
     };
 
-    // Fetch products
     const fetchProducts = async () => {
         try {
             const productsCollection = collection(db, "products");
@@ -142,7 +139,6 @@ const Admin = () => {
         fetchProducts();
     }, []);
 
-    // Fetch reviews
     const fetchReviews = async () => {
         try {
             const reviewsCollection = collection(db, "reviews");
@@ -161,7 +157,6 @@ const Admin = () => {
         fetchReviews();
     }, []);
 
-    // Fetch orders
     const fetchOrders = async () => {
         try {
           const ordersCollection = await getDocs(collection(db, "orders"));
@@ -175,7 +170,6 @@ const Admin = () => {
         fetchOrders();
       }, []);
 
-    // Update order status
     const updateOrderStatus = async (orderId, newStatus) => {
         try {
           await updateDoc(doc(db, "orders", orderId), { status: newStatus });
@@ -264,7 +258,6 @@ const Admin = () => {
         }
     };
 
-    // Delete product
     const deleteProduct = async (id) => {
         try {
             const productDoc = doc(db, "products", id);
@@ -344,7 +337,6 @@ const Admin = () => {
         }
     };
 
-    // Delete review
     const deleteReview = async (id) => {
         try {
             const reviewDoc = doc(db, "reviews", id);
@@ -355,14 +347,12 @@ const Admin = () => {
         }
     };
 
-    // Cancel edit review
     const cancelEditReview = () => {
         setEditingReview(null);
         setEditedReview({ description: "", imageFile: null });
     };
 
-     // Fetch events
-     const fetchEvents = async () => {
+    const fetchEvents = async () => {
         try {
             const eventsCollection = collection(db, "events");
             const eventSnapshot = await getDocs(eventsCollection);
@@ -381,7 +371,6 @@ const Admin = () => {
         fetchEvents();
     }, []);
 
-    // Add events
     const addEvent = async () => {
         if (newEvent.name.trim() && newEvent.price.trim() && newEvent.imageFile) {
             try {
@@ -399,7 +388,7 @@ const Admin = () => {
                     name: newEvent.name,
                     price: newEvent.price,
                     category: newEvent.category,
-                    image: base64Image,  // Use base64 image
+                    image: base64Image,
                 });
 
                 setNewEvent({ name: "", price: "", category: "", imageFile: null });
@@ -410,13 +399,11 @@ const Admin = () => {
         }
     };
 
-    // Edit events
     const handleEditEvent = (event) => {
         setEditingEvent(event);
         setEditedEvent({ name: event.name, price: event.price, category: event.category, imageFile: null });
     };
 
-    // Update events
     const updateEvent = async () => {
         if (!editingEvent) return;
 
@@ -436,7 +423,7 @@ const Admin = () => {
                 const compressedBlob = await compressImage(file, maxWidth, maxHeight);
                 const base64Image = await convertToBase64(compressedBlob);
 
-                updatedData.image = base64Image; // Use base64 image
+                updatedData.image = base64Image;
             }
 
             const eventDoc = doc(db, "events", editingEvent.id);

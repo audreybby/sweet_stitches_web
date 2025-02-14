@@ -11,7 +11,6 @@ export const CartProvider = ({ children }) => {
     setCart([]);
   };
 
-  // Muat item dari Firestore saat halaman dimuat
   const loadCartFromFirestore = async (userId) => {
     if (!userId) return;
     const cartRef = collection(db, `users/${userId}/carts`);
@@ -30,7 +29,6 @@ export const CartProvider = ({ children }) => {
     return () => unsubscribe();
   }, []);
 
-  // Menyimpan item ke Firestore di dalam koleksi pengguna
   const saveToFirestore = async (item) => {
     const auth = getAuth();
     const userId = auth.currentUser?.uid;
@@ -53,7 +51,6 @@ export const CartProvider = ({ children }) => {
     }
   };
 
-  // Hapus item dari Firestore
   const removeFromFirestore = async (id) => {
     const auth = getAuth();
     const userId = auth.currentUser?.uid;
@@ -64,7 +61,6 @@ export const CartProvider = ({ children }) => {
     await deleteDoc(cartRef);
   };
 
-  // Perbarui jumlah di Firestore
   const updateQuantityInFirestore = async (id, quantity) => {
     const auth = getAuth();
     const userId = auth.currentUser?.uid;
@@ -75,7 +71,6 @@ export const CartProvider = ({ children }) => {
     await setDoc(cartRef, { quantity }, { merge: true });
   };
 
-  // Tambah item ke keranjang dan Firestore
   const addToCart = (item) => {
     setCart((prevCart) => {
       const existingProduct = prevCart.find((product) => product.id === item.id);
@@ -92,13 +87,11 @@ export const CartProvider = ({ children }) => {
     saveToFirestore(item);
   };
 
-  // Hapus item dari keranjang dan Firestore
   const removeFromCart = (id) => {
     setCart((prevCart) => prevCart.filter((item) => item.id !== id));
     removeFromFirestore(id);
   };
 
-  // Perbarui jumlah item di keranjang dan Firestore
   const updateQuantity = (id, quantity) => {
     setCart((prevCart) =>
       prevCart.map((item) => (item.id === id ? { ...item, quantity } : item))
@@ -106,7 +99,6 @@ export const CartProvider = ({ children }) => {
     updateQuantityInFirestore(id, quantity);
   };
 
-  // Kosongkan seluruh keranjang di Firestore
   const clearCart = async () => {
     setCart([]);
     const auth = getAuth();

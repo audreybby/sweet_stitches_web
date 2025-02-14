@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
-import { db } from "../firebase"; // Pastikan path firebase sesuai
+import { db } from "../firebase";
 import { collection, getDocs, query, where } from "firebase/firestore";
-import { useCart } from "../components/CartContext"; // Pastikan hook cart sesuai
+import { useCart } from "../components/CartContext";
 import bgImage from "../assets/bgg.jpg";
 import leftArrow from "../assets/panahkiri.png";
 import rightArrow from "../assets/panahkanan.png";
@@ -17,7 +17,6 @@ const ShopCr = () => {
   const [showSuccess, setShowSuccess] = useState(false);
   const { addToCart } = useCart();
 
-  // Fetch products from Firestore based on category "crochet"
   useEffect(() => {
     const fetchCrochetProducts = async () => {
       try {

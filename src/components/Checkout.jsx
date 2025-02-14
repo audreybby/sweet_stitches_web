@@ -60,7 +60,7 @@ const Checkout = () => {
   };
 
   const redirectToWhatsApp = (order) => {
-    const ownerNumber = "6287716272187";
+    const ownerNumber = "6281393716998";
     const message = `Halo, saya ingin mengkonfirmasi order berikut:%0A%0A` +
       `🆔 Order ID: ${order.id}%0A` +
       `💰 Total: Rp${order.total}%0A` +
@@ -172,20 +172,19 @@ const Checkout = () => {
       {showPopup && (
         <div className="fixed inset-0 flex items-center justify-center bg-gray-900 bg-opacity-50">
           <div className="bg-white p-6 rounded-lg shadow-lg">
-            <h2 className="text-xl font-semibold mb-4">Enter Order Details</h2>
-            <input type="text" placeholder="Address" className="w-full mb-2 p-2 border" value={formData.address} onChange={(e) => setFormData({ ...formData, address: e.target.value })} />
-            <input type="text" placeholder="Phone Number" className="w-full mb-2 p-2 border" value={formData.phoneNumber} onChange={(e) => setFormData({ ...formData, phoneNumber: e.target.value })} />
+            <h2 className="text-xl font-semibold mb-4">Order Details</h2>
+            <input type="text" placeholder="Alamat" className="w-full mb-2 p-2 border" value={formData.address} onChange={(e) => setFormData({ ...formData, address: e.target.value })} />
+            <input type="text" placeholder="Nomor Telepon" className="w-full mb-2 p-2 border" value={formData.phoneNumber} onChange={(e) => setFormData({ ...formData, phoneNumber: e.target.value })} />
             <select className="w-full mb-2 p-2 border" onChange={(e) => setFormData({ ...formData, paymentMethod: e.target.value })}>
-              <option value="">Select Payment Method</option>
-              <option value="Credit Card">Credit Card</option>
-              <option value="PayPal">PayPal</option>
+              <option value="">Metode Pembayaran</option>
+              <option value="Cash">Cash (COD)</option>
               <option value="Bank Transfer">Bank Transfer</option>
             </select>
             <select className="w-full mb-2 p-2 border" onChange={(e) => setFormData({ ...formData, shippingOption: e.target.value })}>
-              <option value="">Select Shipping Option</option>
-              <option value="Standard">Standard</option>
-              <option value="Express">Express</option>
-              <option value="Same-day Delivery">Same-day Delivery</option>
+              <option value="">Opsi Pengiriman</option>
+              <option value="COD">COD</option>
+              <option value="Jasa Kirim">Jasa Pengiriman</option>
+              <option value="Ambil di toko">Ambil di Toko</option>
             </select>
             <button className="bg-green-500 text-white px-4 py-2 rounded mr-2" onClick={handleSubmitOrder}>Confirm</button>
             <button className="bg-red-500 text-white px-4 py-2 rounded" onClick={() => setShowPopup(false)}>Cancel</button>
